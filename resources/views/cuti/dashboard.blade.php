@@ -7,6 +7,15 @@
 
     <title>SI-CUTE - Dashboard Cuti BNNK Malang</title>
 
+    <!-- MENCEGAH KEDIPAN (FOUC) SAAT LOAD DARK MODE -->
+    <script>
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700,800&display=swap" rel="stylesheet" />
@@ -15,6 +24,13 @@
     <!-- Tailwind CSS -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- KONFIGURASI MANUAL DARK MODE -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        }
+    </script>
 
     <!-- SWEETALERT2 & FLATPICKR -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -67,48 +83,64 @@
 </head>
 <body class="bg-slate-100/80 dark:bg-slate-950 text-slate-800 dark:text-slate-200 antialiased relative selection:bg-blue-600 selection:text-white flex items-center justify-center min-h-screen py-8 px-4 sm:px-8 transition-colors duration-300">
 
-    <!-- Jendela Aplikasi Mac UI -->
     <div class="w-full max-w-[1400px] bg-white dark:bg-slate-900 rounded-[1.5rem] shadow-2xl dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col border border-slate-300 dark:border-slate-800 animate-fade-in-up opacity-0">
 
-        <!-- Mac Window Top Bar (Level 1) -->
+        <!-- Top Bar -->
         <div class="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800/60 px-5 py-3 flex items-center justify-between">
             <div class="flex items-center space-x-6">
-                <!-- Traffic Lights dengan gap-1.5 agar presisi -->
                 <div class="flex items-center gap-1.5">
                     <div class="w-3.5 h-3.5 rounded-full bg-red-500 shadow-inner"></div>
                     <div class="w-3.5 h-3.5 rounded-full bg-yellow-400 shadow-inner"></div>
                     <div class="w-3.5 h-3.5 rounded-full bg-green-500 shadow-inner"></div>
                 </div>
-                <!-- Breadcrumb -->
                 <div class="flex items-center text-xs font-bold text-slate-500 dark:text-slate-400">
                     <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
                     Portal Cuti <span class="mx-2 text-slate-300 dark:text-slate-600">/</span> <span class="text-slate-800 dark:text-slate-200">Kelola Data Pegawai & Cuti</span>
                 </div>
             </div>
-            <!-- Top Right Branding -->
             <div class="text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-wide border border-slate-200 dark:border-slate-700/80 rounded-md px-3 py-1 flex items-center bg-slate-50 dark:bg-slate-800/50">
                 <span class="text-slate-700 dark:text-slate-200">SI-CUTE</span> <span class="mx-1.5 font-normal text-slate-300 dark:text-slate-600">|</span> BNN Kab. Malang
             </div>
         </div>
 
-        <!-- Sub Header (Level 2) -->
+        <!-- Sub Header -->
         <div class="bg-slate-50/50 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800/60 px-5 py-2.5 flex items-center justify-between text-[11px] font-medium text-slate-500 dark:text-slate-400">
-            <!-- Left Info -->
             <div class="flex items-center space-x-3">
                 <span class="text-blue-600 dark:text-blue-400 font-semibold">Tahun Aktif: {{ $tahunBerjalan }}</span>
                 <span class="text-slate-300 dark:text-slate-600">•</span>
                 <span id="realtime-clock">Memuat waktu...</span>
                 <span class="text-slate-300 dark:text-slate-600">•</span>
-                <a href="{{ route('profil') }}" class="flex items-center text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors group">
+                <div class="flex items-center text-emerald-600 dark:text-emerald-400 font-semibold group cursor-default">
                     <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></div>
                     Admin Kepegawaian
-                </a>
+                </div>
             </div>
-            <!-- Right Profile & Logout -->
-            <div class="flex items-center space-x-3">
-                <a href="{{ route('profil') }}" class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-[10px] shadow-sm hover:scale-105 transition-transform" title="Profil">
-                    {{ substr($user->name ?? 'A', 0, 1) }}
-                </a>
+            
+            <div class="flex items-center space-x-3 relative">
+                
+                <!-- TOMBOL PENGATURAN TEMA -->
+                <div class="relative" id="theme-menu-container">
+                    <button type="button" onclick="toggleThemeMenu()" class="p-1.5 rounded-lg text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-900/30 transition-colors shadow-sm border border-transparent hover:border-blue-200 dark:hover:border-blue-800" title="Pengaturan Tema">
+                        <svg id="theme-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    </button>
+                    <!-- Dropdown Tema -->
+                    <div id="theme-dropdown" class="hidden absolute right-0 mt-2 w-36 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden z-50 transition-all duration-200">
+                        <button onclick="setTheme('light')" class="w-full text-left px-4 py-2.5 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-2 transition-colors">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg> Terang
+                        </button>
+                        <button onclick="setTheme('dark')" class="w-full text-left px-4 py-2.5 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-2 transition-colors border-t border-slate-100 dark:border-slate-700">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg> Gelap
+                        </button>
+                        <button onclick="setTheme('system')" class="w-full text-left px-4 py-2.5 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-2 transition-colors border-t border-slate-100 dark:border-slate-700">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg> Otomatis (Sistem)
+                        </button>
+                    </div>
+                </div>
+
+                <div class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-[10px] shadow-sm cursor-default" title="Admin">
+                    {{ substr(auth()->user()->name ?? 'A', 0, 1) }}
+                </div>
+                
                 <form action="{{ route('logout') }}" method="POST" class="m-0 p-0">
                     @csrf
                     <button type="submit" class="p-1 rounded text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors" title="Keluar">
@@ -118,10 +150,8 @@
             </div>
         </div>
 
-        <!-- Dashboard Content Area -->
         <div class="flex-1 bg-white dark:bg-slate-900 p-8 overflow-y-auto">
 
-            <!-- Alerts -->
             @if(session('success'))
             <div class="mb-6 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 px-4 py-3 rounded-xl flex items-center gap-3 shadow-sm text-sm animate-fade-in-up">
                 <div class="bg-emerald-500 text-white rounded-full p-1"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div>
@@ -136,7 +166,6 @@
             </div>
             @endif
 
-            <!-- Content Header -->
             <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-6 opacity-0 animate-fade-in-up animation-delay-100">
                 <div class="mb-4 lg:mb-0">
                     <h1 class="text-2xl font-extrabold text-slate-800 dark:text-white tracking-tight mb-1">Data Pegawai & Cuti</h1>
@@ -157,7 +186,7 @@
                 </div>
             </div>
 
-            <!-- Data Table Container -->
+            <!-- Tabel Data -->
             <div class="border border-slate-100 dark:border-slate-800 rounded-xl overflow-hidden mb-4 opacity-0 animate-fade-in-up animation-delay-200 transition-colors duration-300">
                 <div class="overflow-x-auto custom-scrollbar">
                     <table class="min-w-full text-left border-collapse">
@@ -173,7 +202,6 @@
                         </thead>
                         <tbody id="tabelPegawai" class="divide-y divide-slate-50 dark:divide-slate-800/60 bg-white dark:bg-slate-900 transition-colors duration-300">
                             @foreach($employees as $index => $emp)
-
                             @php
                                 $bN = $emp->leaveBalances()->where('tahun', $tahunBerjalan)->first();
                                 $bN1 = $emp->leaveBalances()->where('tahun', $tahunBerjalan - 1)->first();
@@ -182,17 +210,29 @@
                                 $valN = $bN ? $bN->sisa_cuti_total : 12;
                                 $valN1 = $bN1 ? $bN1->sisa_cuti_total : 0;
                                 $valN2 = $bN2 ? $bN2->sisa_cuti_total : 0;
-
                                 $hakDasarN = $bN ? $bN->hak_cuti_dasar : 12;
 
                                 $sisaHari = $valN + min($valN1, 6) + min($valN2, 6);
                             @endphp
-
                             <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors group">
                                 <td class="px-5 py-3.5 text-[11px] font-medium text-slate-400 dark:text-slate-500 text-center">{{ $index + 1 }}</td>
                                 <td class="px-5 py-3.5">
                                     <div class="text-[11px] font-extrabold text-slate-800 dark:text-slate-100 uppercase">{{ $emp->nama }}</div>
-                                    <div class="text-[10px] font-medium text-slate-400 dark:text-slate-500 mt-0.5 uppercase">{{ $emp->jabatan ?? '-' }}</div>
+                                    <div class="text-[10px] font-medium text-slate-400 dark:text-slate-500 mt-0.5 uppercase mb-2">{{ $emp->jabatan ?? '-' }}</div>
+                                    
+                                    <!-- BADGE LOGIN INFO UNTUK ADMIN -->
+                                    @if($emp->user)
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <div class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded flex items-center gap-1">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                                            <span class="text-[9px] font-bold">{{ $emp->user->username }}</span>
+                                        </div>
+                                        <div class="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded flex items-center gap-1" title="Kata Sandi Bawaan Sistem">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                            <span class="text-[9px] font-bold tracking-wider">bnnkmalang</span>
+                                        </div>
+                                    </div>
+                                    @endif
                                 </td>
                                 <td class="px-5 py-3.5 text-center">
                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-700">
@@ -244,10 +284,9 @@
                         </tbody>
                     </table>
                 </div>
-
             </div>
 
-            <!-- Footer -->
+            <!-- Footer Date -->
             <div class="flex flex-col sm:flex-row justify-between items-center text-[10px] text-slate-400 dark:text-slate-500 opacity-0 animate-fade-in-up animation-delay-200 mt-2 px-2">
                 <div class="flex items-center space-x-2 mb-4 sm:mb-0">
                     <div class="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
@@ -255,7 +294,7 @@
                     <span class="mx-1">•</span>
                     <span>Sinkronisasi Database BNNK Malang Aktif</span>
                 </div>
-                <div class="font-medium">v2.4.8 (macOS Soft-UI Dark)</div>
+                <div class="font-medium">v2.4.9 (macOS Soft-UI Dark)</div>
             </div>
 
         </div>
@@ -328,6 +367,38 @@
                                 <label class="block font-bold text-slate-700 dark:text-slate-200 mb-1.5 text-xs">Golongan</label>
                                 <input type="text" name="golongan" value="{{ $emp->golongan }}" class="w-full px-4 py-2.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-4 focus:ring-blue-500/10 dark:focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-500 dark:text-slate-200 outline-none transition-all text-sm shadow-sm">
                             </div>
+                            <div class="col-span-2">
+                                <label class="block font-bold text-slate-700 dark:text-slate-200 mb-1.5 text-xs">Tanggal Mulai Kerja</label>
+                                <div class="relative">
+                                    <input type="text" name="tanggal_mulai_kerja" 
+                                           value="{{ $emp->tanggal_mulai_kerja ? \Carbon\Carbon::parse($emp->tanggal_mulai_kerja)->format('Y-m-d') : '' }}" 
+                                           class="datepicker-baru w-full px-4 py-2.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-4 focus:ring-blue-500/10 dark:focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-500 dark:text-slate-200 outline-none transition-all placeholder-slate-400 dark:placeholder-slate-600 text-sm shadow-sm" 
+                                           placeholder="Pilih tanggal mulai kerja...">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- ===== TAMBAHAN: FORM UBAH AKSES LOGIN ===== -->
+                            <div class="col-span-2 mt-3 pt-5 border-t border-slate-200 dark:border-slate-800">
+                                <h3 class="font-bold text-slate-800 dark:text-slate-200 mb-3 text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+                                    <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                    Akses Login Pegawai (Opsi Admin)
+                                </h3>
+                                <div class="grid grid-cols-2 gap-5">
+                                    <div>
+                                        <label class="block font-bold text-slate-700 dark:text-slate-200 mb-1.5 text-xs">Username (Tanpa Spasi)</label>
+                                        <input type="text" name="username" value="{{ $emp->user->username ?? '' }}" required class="w-full px-4 py-2.5 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 dark:text-slate-200 outline-none transition-all text-sm shadow-inner lowercase">
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-slate-700 dark:text-slate-200 mb-1.5 text-xs">Kata Sandi Baru</label>
+                                        <input type="text" name="password" placeholder="Kosongkan jika tidak diubah" class="w-full px-4 py-2.5 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 dark:text-slate-200 outline-none transition-all text-sm shadow-inner">
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- =========================================== -->
+                            
                         </div>
                     </div>
                     <div class="px-7 py-6 bg-transparent flex justify-end gap-3 rounded-b-3xl mt-1">
@@ -343,7 +414,6 @@
             <div class="modal-overlay absolute w-full h-full bg-slate-900/40 dark:bg-slate-900/80 backdrop-blur-[2px] transition-opacity"></div>
             <div class="modal-container bg-white dark:bg-[#111827] w-11/12 md:max-w-4xl mx-auto rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] dark:shadow-none border border-white/20 dark:border-slate-800 z-50 overflow-y-auto max-h-[90vh] transition-all transform scale-95 duration-300">
 
-                <!-- Modal Header -->
                 <div class="px-7 py-5 border-b border-slate-100 dark:border-slate-800/80 flex justify-between items-start bg-transparent">
                     <div>
                         <h2 class="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">Detail Data Cuti Pegawai</h2>
@@ -362,10 +432,8 @@
                     </button>
                 </div>
 
-                <!-- Modal Body -->
                 <div class="px-7 py-6 space-y-7 bg-white dark:bg-[#111827]">
-
-                    <!-- Section V: SISA HAK CUTI -->
+                    <!-- SISA HAK CUTI -->
                     <div>
                         <div class="flex justify-between items-end mb-3">
                             <h3 class="font-bold text-slate-800 dark:text-slate-200 text-[11px] uppercase tracking-wider flex items-center gap-2">
@@ -425,7 +493,7 @@
                         </div>
                     </div>
 
-                    <!-- Section VI: RIWAYAT PENGAJUAN -->
+                    <!-- RIWAYAT PENGAJUAN -->
                     <div>
                         <div class="flex justify-between items-end mb-3">
                             <h3 class="font-bold text-slate-800 dark:text-slate-200 text-[11px] uppercase tracking-wider flex items-center gap-2">
@@ -443,7 +511,7 @@
                                         <th class="px-3 py-3 border-r border-slate-200 dark:border-slate-800">Mulai Tanggal</th>
                                         <th class="px-3 py-3 border-r border-slate-200 dark:border-slate-800">Sampai Dengan</th>
                                         <th class="px-3 py-3 border-r border-slate-200 dark:border-slate-800">Durasi</th>
-                                        <th class="px-2 py-3">Aksi</th>
+                                        <th class="px-2 py-3">Aksi Konfirmasi</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -460,13 +528,35 @@
                                         <td class="px-3 py-2.5 border-r border-slate-100 dark:border-slate-800/60 font-semibold text-slate-700 dark:text-slate-300 text-[11px]">{{ \Carbon\Carbon::parse($riwayat->mulai_tanggal)->format('d M Y') }}</td>
                                         <td class="px-3 py-2.5 border-r border-slate-100 dark:border-slate-800/60 font-semibold text-slate-700 dark:text-slate-300 text-[11px]">{{ \Carbon\Carbon::parse($riwayat->sampai_tanggal)->format('d M Y') }}</td>
                                         <td class="px-3 py-2.5 font-bold text-blue-600 dark:text-blue-400 border-r border-slate-100 dark:border-slate-800/60">{{ $riwayat->durasi }} Hari</td>
-                                        <td class="px-2 py-2.5">
-                                            <form action="{{ route('cuti.destroy', $riwayat->id) }}" method="POST" class="m-0 p-0 inline-block">
-                                                @csrf @method('DELETE')
-                                                <button type="button" onclick="konfirmasiBatalkanCuti(this, '{{ $riwayat->jenis_cuti }}')" class="text-rose-400 hover:text-rose-600 dark:hover:text-rose-300 p-1 transition-colors opacity-70 group-hover:opacity-100" title="Batalkan">
-                                                    <svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                                </button>
-                                            </form>
+                                        
+                                        <td class="px-2 py-2.5 align-middle">
+                                            <div class="flex flex-col items-center gap-1.5 w-full max-w-[100px] mx-auto">
+                                                @if($riwayat->status_pengajuan == 'Disetujui')
+                                                    <span class="bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 px-2 py-1.5 rounded-md text-[10px] font-bold w-full text-center">Disetujui ✅</span>
+                                                @elseif($riwayat->status_pengajuan == 'Ditolak')
+                                                    <span class="bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20 px-2 py-1.5 rounded-md text-[10px] font-bold w-full text-center">Ditolak ❌</span>
+                                                @else
+                                                    <div class="flex flex-col xl:flex-row gap-1 w-full justify-center">
+                                                        <form action="{{ route('cuti.konfirmasi', $riwayat->id) }}" method="POST" class="m-0 p-0 w-full">
+                                                            @csrf
+                                                            <input type="hidden" name="status" value="Disetujui">
+                                                            <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white px-1.5 py-1.5 rounded-md text-[10px] font-bold transition-colors shadow-sm" title="Setujui Cuti">✓ ACC</button>
+                                                        </form>
+                                                        <form action="{{ route('cuti.konfirmasi', $riwayat->id) }}" method="POST" class="m-0 p-0 w-full">
+                                                            @csrf
+                                                            <input type="hidden" name="status" value="Ditolak">
+                                                            <button type="submit" class="w-full bg-rose-500 hover:bg-rose-600 text-white px-1.5 py-1.5 rounded-md text-[10px] font-bold transition-colors shadow-sm" title="Tolak Cuti">✕ Tolak</button>
+                                                        </form>
+                                                    </div>
+                                                @endif
+
+                                                <form action="{{ route('cuti.destroy', $riwayat->id) }}" method="POST" class="m-0 p-0 w-full">
+                                                    @csrf @method('DELETE')
+                                                    <button type="button" onclick="konfirmasiBatalkanCuti(this, '{{ $riwayat->jenis_cuti }}')" class="w-full text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 bg-slate-50 hover:bg-rose-50 dark:bg-slate-800/50 dark:hover:bg-rose-900/20 py-1.5 transition-colors border border-slate-200 dark:border-slate-700 hover:border-rose-200 dark:hover:border-rose-500/30 rounded-md flex justify-center items-center" title="Hapus Permanen">
+                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </td>
                                     </tr>
                                     @empty
@@ -488,7 +578,6 @@
                     </div>
                 </div>
 
-                <!-- Modal Footer -->
                 <div class="px-7 py-4 bg-slate-50/50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800/80 flex justify-between items-center rounded-b-3xl mt-1">
                     <div class="flex items-center text-[9px] text-slate-400 dark:text-slate-500 font-medium space-x-1.5 hidden sm:flex">
                         <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
@@ -512,7 +601,7 @@
                 @csrf
                 <div class="px-7 py-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-transparent">
                     <div>
-                        <h2 class="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">Atur Hak Cuti</h2>
+                        <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight">Atur Hak Cuti</h2>
                         <p class="text-[10px] font-bold text-purple-600 dark:text-purple-400 mt-1 uppercase tracking-wider" id="atur_employee_name">Nama Pegawai</p>
                     </div>
                     <button type="button" onclick="closeModal('modalAturCuti')" class="text-slate-400 hover:text-rose-500 dark:text-slate-500 dark:hover:text-rose-400 transition-colors p-2 rounded-full hover:bg-slate-50 dark:hover:bg-slate-800/50">
@@ -545,7 +634,6 @@
                         </p>
                     </div>
 
-                    <!-- INPUT PIN OTORISASI UNTUK ATUR CUTI -->
                     <div class="pt-3">
                         <label class="block font-bold text-purple-600 dark:text-purple-400 mb-2 flex items-center gap-1.5 text-xs">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
@@ -586,7 +674,6 @@
 
                 <div class="px-7 py-6 space-y-6 bg-white dark:bg-[#111827]">
 
-                    <!-- Employee Info Card -->
                     <div class="flex items-center gap-4 p-4 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-2xl shadow-sm">
                         <div class="w-11 h-11 bg-white dark:bg-[#0f172a] text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center font-bold shadow-sm border border-blue-100 dark:border-slate-800">
                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
@@ -669,6 +756,25 @@
                         <!-- Right Column -->
                         <div class="space-y-5">
                             <div>
+                                <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2.5">Data Administrasi <span class="text-rose-500">*</span></label>
+                                <div class="grid grid-cols-2 gap-3 mb-3">
+                                    <div>
+                                        <label class="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-1.5">Tanggal Surat Dibuat</label>
+                                        <div class="relative">
+                                            <input type="text" id="tanggal_surat" name="tanggal_surat" class="datepicker-baru w-full pl-4 pr-9 py-2.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-4 focus:ring-blue-500/10 dark:focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-500 outline-none text-xs dark:text-slate-200 cursor-pointer shadow-sm transition-all" placeholder="Pilih tanggal surat..." required>
+                                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-1.5">No. Telepon / WA</label>
+                                        <input type="text" name="telepon" class="w-full px-4 py-2.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-4 focus:ring-blue-500/10 dark:focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-500 outline-none text-xs dark:text-slate-200 shadow-sm transition-all" placeholder="Contoh: 0812345678" required>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div>
                                 <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2.5">Waktu Pelaksanaan <span class="text-rose-500">*</span></label>
                                 <div class="grid grid-cols-2 gap-3 mb-3">
                                     <div>
@@ -691,7 +797,7 @@
                                     </div>
                                 </div>
                                 <div>
-                                    <label class="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-1.5">Total Durasi (Otomatis)</label>
+                                    <label class="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-1.5">Total Durasi</label>
                                     <div class="relative">
                                         <input type="number" id="durasi_input" name="durasi" min="1" class="w-full px-4 py-2.5 bg-slate-50/50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl outline-none text-sm pr-12 font-black text-slate-800 dark:text-slate-200 shadow-sm" placeholder="0" required readonly>
                                         <span class="absolute right-4 top-2.5 text-[10px] font-bold text-slate-400 dark:text-slate-500">HARI</span>
@@ -820,6 +926,15 @@
                             <label class="block font-bold text-slate-700 dark:text-slate-200 mb-1.5 text-xs">Golongan</label>
                             <input type="text" name="golongan" class="w-full px-4 py-2.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-4 focus:ring-blue-500/10 dark:focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-500 dark:text-slate-200 outline-none transition-all placeholder-slate-400 dark:placeholder-slate-600 text-sm shadow-sm" placeholder="Contoh: III-a">
                         </div>
+                        <div class="col-span-2">
+                            <label class="block font-bold text-slate-700 dark:text-slate-200 mb-1.5 text-xs">Tanggal Mulai Kerja</label>
+                            <div class="relative">
+                                <input type="text" name="tanggal_mulai_kerja" class="datepicker-baru w-full px-4 py-2.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-4 focus:ring-blue-500/10 dark:focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-500 dark:text-slate-200 outline-none transition-all placeholder-slate-400 dark:placeholder-slate-600 text-sm shadow-sm" placeholder="Pilih tanggal mulai kerja...">
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="px-7 py-5 bg-transparent flex justify-end gap-3 rounded-b-3xl mt-2">
@@ -833,11 +948,67 @@
         </div>
     </div>
 
-    <!-- JAVASCRIPT LOGIKA, KALENDER, & SWEETALERT PIN -->
+    <!-- JAVASCRIPT LOGIKA, TEMA, KALENDER, & SWEETALERT PIN -->
     <script>
-        const dateConfig = { locale: "id", dateFormat: "Y-m-d", altInput: true, altFormat: "d F Y", onChange: hitungDurasi };
-        const fpMulai = flatpickr("#mulai_tanggal", dateConfig);
-        const fpSampai = flatpickr("#sampai_tanggal", dateConfig);
+        // LOGIKA TEMA (THEME SWITCHER)
+        function updateThemeIcon(mode) {
+            const icon = document.getElementById('theme-icon');
+            if (mode === 'dark') {
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>';
+            } else if (mode === 'light') {
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>';
+            } else {
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>';
+            }
+        }
+
+        // Setel ikon awal berdasarkan preferensi saat ini
+        if (localStorage.theme === 'dark') {
+            updateThemeIcon('dark');
+        } else if (localStorage.theme === 'light') {
+            updateThemeIcon('light');
+        } else {
+            updateThemeIcon('system');
+        }
+
+        function toggleThemeMenu() {
+            document.getElementById('theme-dropdown').classList.toggle('hidden');
+        }
+
+        function setTheme(mode) {
+            if (mode === 'dark') {
+                localStorage.theme = 'dark';
+                document.documentElement.classList.add('dark');
+            } else if (mode === 'light') {
+                localStorage.theme = 'light';
+                document.documentElement.classList.remove('dark');
+            } else {
+                localStorage.removeItem('theme');
+                if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            }
+            updateThemeIcon(mode);
+            document.getElementById('theme-dropdown').classList.add('hidden');
+        }
+
+        // Menutup menu jika klik di luar
+        window.addEventListener('click', function(e) {
+            if (!document.getElementById('theme-menu-container').contains(e.target)) {
+                document.getElementById('theme-dropdown').classList.add('hidden');
+            }
+        });
+
+        // Config khusus untuk rentang cuti yang memicu hitungDurasi otomatis
+        const dateConfigCuti = { locale: "id", dateFormat: "Y-m-d", altInput: true, altFormat: "d F Y", onChange: hitungDurasi };
+        const fpMulai = flatpickr("#mulai_tanggal", dateConfigCuti);
+        const fpSampai = flatpickr("#sampai_tanggal", dateConfigCuti);
+        
+        // Config untuk tanggal biasa (Tanggal Surat, Tanggal Mulai Kerja) tanpa hitungDurasi
+        flatpickr(".datepicker-baru", { locale: "id", dateFormat: "Y-m-d", altInput: true, altFormat: "d F Y" });
+        
         const durasiInput = document.getElementById('durasi_input');
 
         let saldoN = 0, saldoN1 = 0, saldoN2 = 0;
@@ -892,6 +1063,10 @@
             document.getElementById('input_alasan').value = '';
 
             fpMulai.clear(); fpSampai.clear(); durasiInput.value = '';
+            
+            const fpSurat = document.getElementById('tanggal_surat');
+            if(fpSurat && fpSurat._flatpickr) fpSurat._flatpickr.clear();
+
             updateSimulasi(0);
             openModal('modalInputCuti');
         }
@@ -975,7 +1150,6 @@
         setInterval(updateRealtimeClock, 1000);
         updateRealtimeClock();
 
-        // SWEETALERT HAPUS PEGAWAI
         // SWEETALERT HAPUS PEGAWAI (SOFT MAC UI)
         function konfirmasiHapusPegawai(btn, nama) {
             Swal.fire({
@@ -1041,10 +1215,8 @@
             });
         }
 
-        // SWEETALERT BATALKAN CUTI
         // SWEETALERT BATALKAN CUTI (SOFT MAC UI)
         function konfirmasiBatalkanCuti(btn, jenisCuti) {
-            // Lencana khusus jika yang dibatalkan adalah Cuti Tahunan
             let textTambahan = jenisCuti === 'Cuti Tahunan' ? `
                 <div class="flex items-center justify-center gap-1.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mt-3 bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-100 dark:border-emerald-500/20">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
@@ -1107,9 +1279,36 @@
     @if(session('new_employee_id'))
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(function() {
-                openModalAturCuti({{ session('new_employee_id') }}, '{!! addslashes(session('new_employee_nama')) !!}', '{{ session('new_employee_status') }}', 12, 0, 0);
-            }, 300);
+            // Tampilkan SweetAlert berisi Username & Password
+            Swal.fire({
+                html: `
+                    <div class="flex flex-col items-center pt-2">
+                        <div class="w-16 h-16 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-full flex items-center justify-center mb-4">
+                            <svg class="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                        </div>
+                        <h2 class="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">Akun Berhasil Dibuat!</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mb-4 text-center">Data <b>{{ session('new_employee_nama') }}</b> tersimpan. Berikan info login ini kepada yang bersangkutan:</p>
+                        
+                        <div class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 w-full text-left mb-4">
+                            <div class="text-[10px] text-slate-400 uppercase tracking-widest mb-1">Username Login</div>
+                            <div class="text-lg font-mono font-bold text-blue-600 dark:text-blue-400 mb-3">{{ session('new_username') }}</div>
+                            
+                            <div class="text-[10px] text-slate-400 uppercase tracking-widest mb-1">Password Default</div>
+                            <div class="text-lg font-mono font-bold text-rose-500 dark:text-rose-400">bnnkmalang</div>
+                        </div>
+                    </div>
+                `,
+                confirmButtonText: 'Tutup & Lanjut Atur Cuti',
+                customClass: {
+                    popup: 'bg-white dark:bg-[#111827] rounded-[1.5rem] shadow-2xl border border-slate-100 dark:border-slate-800',
+                    confirmButton: 'px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[13px] font-bold w-full'
+                }
+            }).then(() => {
+                // Setelah ditutup, otomatis buka modal atur saldo cuti
+                setTimeout(function() {
+                    openModalAturCuti({{ session('new_employee_id') }}, '{!! addslashes(session('new_employee_nama')) !!}', '{{ session('new_employee_status') }}', 12, 0, 0);
+                }, 300);
+            });
         });
     </script>
     @endif
