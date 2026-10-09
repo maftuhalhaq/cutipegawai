@@ -517,52 +517,101 @@ class LeaveController extends Controller
         return response()->download($tempPath)->deleteFileAfterSend(true);
     }
 
-    // --- KONFIRMASI CUTI (OLEH ADMIN) ---
+    // --- KONFIRMASI STATUS CUTI OLEH ADMIN ---
     public function konfirmasiCuti(Request $request, $id)
     {
-        $history = LeaveHistory::findOrFail($id);
+        $riwayat = \App\Models\LeaveHistory::findOrFail($id);
+        $statusLama = $riwayat->status_pengajuan;
         $statusBaru = $request->status;
 
-        if ($statusBaru === 'Ditolak' && $history->jenis_cuti === 'Cuti Tahunan' && $history->status_pengajuan !== 'Ditolak') {
-            $employeeId = $history->employee_id;
-            $refundHari = $history->durasi;
-            $tahunBerjalan = $history->tahun;
+        // LOGIKA OTOMATIS: PENGEMBALIAN & PEMOTONGAN SALDO (Hanya untuk Cuti Tahunan)
+        if ($riwayat->jenis_cuti == 'Cuti Tahunan' && $statusLama != $statusBaru) {
+            $tahun = date('Y', strtotime($riwayat->mulai_tanggal)); // Ambil tahun dari tanggal cuti
 
-            $bN = LeaveBalance::where('employee_id', $employeeId)->where('tahun', $tahunBerjalan)->first();
-            $bN1 = LeaveBalance::where('employee_id', $employeeId)->where('tahun', $tahunBerjalan - 1)->first();
-            $bN2 = LeaveBalance::where('employee_id', $employeeId)->where('tahun', $tahunBerjalan - 2)->first();
+            // 1. Jika sebelumnya Menunggu/ACC (saldo sudah terpotong) -> sekarang DITOLAK (Kembalikan Saldo!)
+            if (in_array($statusLama, ['Menunggu', 'Disetujui']) && $statusBaru == 'Ditolak') {
+                $this->kembalikanSaldoCuti($riwayat->employee_id, $riwayat->durasi, $tahun);
+            }
 
-            if ($bN && $refundHari > 0) {
-                $space = $bN->hak_cuti_dasar - $bN->sisa_cuti_total;
-                if ($space > 0) {
-                    $add = min($space, $refundHari);
-                    $bN->sisa_cuti_total += $add;
-                    $bN->save();
-                    $refundHari -= $add;
-                }
-            }
-            if ($bN1 && $refundHari > 0) {
-                $space = $bN1->hak_cuti_dasar - $bN1->sisa_cuti_total;
-                if ($space > 0) {
-                    $add = min($space, $refundHari);
-                    $bN1->sisa_cuti_total += $add;
-                    $bN1->save();
-                    $refundHari -= $add;
-                }
-            }
-            if ($bN2 && $refundHari > 0) {
-                $space = $bN2->hak_cuti_dasar - $bN2->sisa_cuti_total;
-                if ($space > 0) {
-                    $add = min($space, $refundHari);
-                    $bN2->sisa_cuti_total += $add;
-                    $bN2->save();
-                }
+            // 2. Jika sebelumnya Ditolak (saldo utuh) -> sekarang di-RESET ke Menunggu/ACC (Potong Saldo Lagi!)
+            elseif ($statusLama == 'Ditolak' && in_array($statusBaru, ['Menunggu', 'Disetujui'])) {
+                $this->potongSaldoCuti($riwayat->employee_id, $riwayat->durasi, $tahun);
             }
         }
 
-        $history->status_pengajuan = $statusBaru;
-        $history->save();
+        $riwayat->status_pengajuan = $statusBaru;
 
-        return back()->with('success', 'Status pengajuan cuti berhasil diperbarui menjadi: ' . $statusBaru);
+        // Simpan alasan tolak
+        if ($statusBaru == 'Ditolak') {
+            $riwayat->alasan_tolak = $request->alasan_tolak;
+        } else {
+            $riwayat->alasan_tolak = null;
+        }
+
+        $riwayat->save();
+        return back()->with('success', 'Status pengajuan cuti berhasil diperbarui!');
+    }
+
+    // ==============================================================================
+    // FUNGSI PEMBANTU (Letakkan di bawah fungsi konfirmasiCuti, di dalam class controller)
+    // ==============================================================================
+
+    private function kembalikanSaldoCuti($employee_id, $durasi, $tahun)
+    {
+        $bN = \App\Models\LeaveBalance::where('employee_id', $employee_id)->where('tahun', $tahun)->first();
+        $bN1 = \App\Models\LeaveBalance::where('employee_id', $employee_id)->where('tahun', $tahun - 1)->first();
+        $bN2 = \App\Models\LeaveBalance::where('employee_id', $employee_id)->where('tahun', $tahun - 2)->first();
+
+        $sisaKembali = $durasi;
+
+        // Prioritas pengembalian: Isi penuh tahun N dulu, baru N-1, lalu N-2
+        if ($bN && $sisaKembali > 0) {
+            $space = $bN->hak_cuti_dasar - $bN->sisa_cuti_total;
+            $kembali = min($space, $sisaKembali);
+            $bN->sisa_cuti_total += $kembali;
+            $bN->save();
+            $sisaKembali -= $kembali;
+        }
+        if ($bN1 && $sisaKembali > 0) {
+            $space = 6 - $bN1->sisa_cuti_total; // max sisa bawaan adalah 6
+            $kembali = min($space, $sisaKembali);
+            $bN1->sisa_cuti_total += $kembali;
+            $bN1->save();
+            $sisaKembali -= $kembali;
+        }
+        if ($bN2 && $sisaKembali > 0) {
+            $space = 6 - $bN2->sisa_cuti_total;
+            $kembali = min($space, $sisaKembali);
+            $bN2->sisa_cuti_total += $kembali;
+            $bN2->save();
+        }
+    }
+
+    private function potongSaldoCuti($employee_id, $durasi, $tahun)
+    {
+        $bN = \App\Models\LeaveBalance::where('employee_id', $employee_id)->where('tahun', $tahun)->first();
+        $bN1 = \App\Models\LeaveBalance::where('employee_id', $employee_id)->where('tahun', $tahun - 1)->first();
+        $bN2 = \App\Models\LeaveBalance::where('employee_id', $employee_id)->where('tahun', $tahun - 2)->first();
+
+        $sisaPotong = $durasi;
+
+        // Prioritas pemotongan: Habiskan N-2 dulu, baru N-1, lalu N
+        if ($bN2 && $sisaPotong > 0) {
+            $potong = min($bN2->sisa_cuti_total, $sisaPotong);
+            $bN2->sisa_cuti_total -= $potong;
+            $bN2->save();
+            $sisaPotong -= $potong;
+        }
+        if ($bN1 && $sisaPotong > 0) {
+            $potong = min($bN1->sisa_cuti_total, $sisaPotong);
+            $bN1->sisa_cuti_total -= $potong;
+            $bN1->save();
+            $sisaPotong -= $potong;
+        }
+        if ($bN && $sisaPotong > 0) {
+            $potong = min($bN->sisa_cuti_total, $sisaPotong);
+            $bN->sisa_cuti_total -= $potong;
+            $bN->save();
+        }
     }
 }

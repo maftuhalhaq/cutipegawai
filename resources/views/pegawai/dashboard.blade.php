@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel Pegawai - SI-CUTE BNNK Malang</title>
 
+    <!-- MENCEGAH KEDIPAN (FOUC) SAAT LOAD DARK MODE -->
+    <script>
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700,800&display=swap" rel="stylesheet" />
@@ -13,6 +22,13 @@
     <!-- Tailwind CSS -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- KONFIGURASI MANUAL DARK MODE -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        }
+    </script>
 
     <!-- SWEETALERT2 & FLATPICKR -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -79,7 +95,27 @@
                 <span class="text-slate-300 dark:text-slate-600">•</span>
                 <span id="realtime-clock">Memuat waktu...</span>
             </div>
-            <div class="flex items-center space-x-3">
+            
+            <div class="flex items-center space-x-3 relative">
+                <!-- TOMBOL PENGATURAN TEMA -->
+                <div class="relative" id="theme-menu-container">
+                    <button type="button" onclick="toggleThemeMenu()" class="p-1.5 rounded-lg text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-900/30 transition-colors shadow-sm border border-transparent hover:border-blue-200 dark:hover:border-blue-800" title="Pengaturan Tema">
+                        <svg id="theme-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    </button>
+                    <!-- Dropdown Tema -->
+                    <div id="theme-dropdown" class="hidden absolute right-0 mt-2 w-36 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden z-50 transition-all duration-200">
+                        <button onclick="setTheme('light')" class="w-full text-left px-4 py-2.5 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-2 transition-colors">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg> Terang
+                        </button>
+                        <button onclick="setTheme('dark')" class="w-full text-left px-4 py-2.5 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-2 transition-colors border-t border-slate-100 dark:border-slate-700">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg> Gelap
+                        </button>
+                        <button onclick="setTheme('system')" class="w-full text-left px-4 py-2.5 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-2 transition-colors border-t border-slate-100 dark:border-slate-700">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg> Otomatis (Sistem)
+                        </button>
+                    </div>
+                </div>
+
                 <div class="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-semibold">
                     <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
                     Pegawai
@@ -154,8 +190,8 @@
                                     <th class="px-5 py-4 border-r border-slate-100 dark:border-slate-800/60">Jenis Cuti</th>
                                     <th class="px-5 py-4 border-r border-slate-100 dark:border-slate-800/60 w-1/3">Alasan / Keterangan</th>
                                     <th class="px-5 py-4 border-r border-slate-100 dark:border-slate-800/60">Tanggal Pelaksanaan</th>
-                                    <th class="px-5 py-4 border-r border-slate-100 dark:border-slate-800/60">Status</th>
-                                    <th class="px-5 py-4">Aksi Dokumen</th>
+                                    <th class="px-5 py-4 border-r border-slate-100 dark:border-slate-800/60 w-48">Status</th>
+                                    <th class="px-5 py-4 w-40">Aksi Dokumen</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60 bg-white dark:bg-transparent">
@@ -169,29 +205,47 @@
                                         <div class="text-slate-700 dark:text-slate-300 font-bold text-xs">{{ \Carbon\Carbon::parse($riwayat->sampai_tanggal)->format('d M Y') }}</div>
                                         <div class="text-[10px] font-bold text-blue-600 dark:text-blue-400 mt-1">({{ $riwayat->durasi }} Hari)</div>
                                     </td>
-                                    <td class="px-5 py-4 border-r border-slate-100 dark:border-slate-800/60">
-                                        @if($riwayat->status_pengajuan == 'Disetujui')
-                                            <span class="bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 px-3 py-1.5 rounded-md text-[10px] font-bold">Disetujui ✅</span>
-                                        @elseif($riwayat->status_pengajuan == 'Ditolak')
-                                            <span class="bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20 px-3 py-1.5 rounded-md text-[10px] font-bold">Ditolak ❌</span>
-                                        @else
-                                            <span class="bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 px-3 py-1.5 rounded-md text-[10px] font-bold">Menunggu Validasi ⏳</span>
-                                        @endif
+                                    
+                                    <!-- KOLOM STATUS (Diperbaiki) -->
+                                    <td class="px-5 py-4 border-r border-slate-100 dark:border-slate-800/60 align-middle">
+                                        <div class="flex flex-col items-center justify-center gap-2 w-full">
+                                            @if($riwayat->status_pengajuan == 'Disetujui')
+                                                <span class="bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 px-3 py-1.5 rounded-md text-[10px] font-bold w-full text-center block">Disetujui ✅</span>
+                                            @elseif($riwayat->status_pengajuan == 'Ditolak')
+                                                <span class="bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20 px-3 py-1.5 rounded-md text-[10px] font-bold w-full text-center block mb-1">Ditolak ❌</span>
+                                                <!-- Kotak Alasan Ditolak -->
+                                                <div class="text-[10px] font-medium text-rose-700 dark:text-rose-300 leading-relaxed bg-rose-50/50 dark:bg-rose-900/20 p-2.5 rounded-lg border border-rose-100/50 dark:border-rose-800/30 w-full text-left shadow-inner">
+                                                    <span class="font-bold block mb-1 text-[9px] uppercase tracking-wider text-rose-500">Alasan Admin:</span>
+                                                    "{{ $riwayat->alasan_tolak ?? 'Tidak ada keterangan' }}"
+                                                </div>
+                                            @else
+                                                <span class="bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 px-3 py-1.5 rounded-md text-[10px] font-bold w-full text-center block">Menunggu Validasi ⏳</span>
+                                            @endif
+                                        </div>
                                     </td>
-                                    <td class="px-5 py-4">
-                                        <div class="flex flex-col gap-2 items-center justify-center">
-                                            <!-- Tombol Cetak / Preview Dokumen -->
-                                            <button type="button" onclick="previewSurat('{{ route('cuti.cetak', $riwayat->id) }}', '{{ \Carbon\Carbon::parse($riwayat->created_at)->format('d M Y') }}')" class="inline-flex w-full justify-center items-center gap-1.5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 px-4 py-2 rounded-lg text-xs font-bold transition-colors shadow-sm">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                                                Dokumen
-                                            </button>
+                                    
+                                    <!-- KOLOM AKSI DOKUMEN -->
+                                    <td class="px-5 py-4 align-middle">
+                                        <div class="flex flex-col gap-2 items-center justify-center w-full">
+                                            @if($riwayat->status_pengajuan == 'Ditolak')
+                                                <!-- Tampilan jika ditolak (Dokumen dibatalkan) -->
+                                                <div class="text-[10px] font-bold text-slate-400 dark:text-slate-500 italic px-2 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700 w-full text-center">
+                                                    Dokumen Dibatalkan
+                                                </div>
+                                            @else
+                                                <!-- Tombol Preview Dokumen (Tampil jika ACC / Menunggu) -->
+                                                <button type="button" onclick="previewSurat('{{ route('cuti.cetak', $riwayat->id) }}', '{{ \Carbon\Carbon::parse($riwayat->created_at)->format('d M Y') }}')" class="inline-flex w-full justify-center items-center gap-1.5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 px-4 py-2 rounded-lg text-xs font-bold transition-colors shadow-sm">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                                                    Dokumen
+                                                </button>
+                                            @endif
                                             
-                                            <!-- Tombol Batalkan Cuti -->
+                                            <!-- Tombol Batalkan Cuti oleh Pegawai -->
                                             @if($riwayat->status_pengajuan == 'Menunggu')
                                             <form action="{{ route('cuti.destroy', $riwayat->id) }}" method="POST" class="m-0 p-0 w-full">
                                                 @csrf @method('DELETE')
                                                 <button type="button" onclick="konfirmasiBatalkanCuti(this, '{{ $riwayat->jenis_cuti }}')" class="w-full text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 bg-slate-50 hover:bg-rose-50 dark:bg-slate-800/50 dark:hover:bg-rose-900/20 py-1.5 transition-colors border border-slate-200 dark:border-slate-700 hover:border-rose-200 dark:hover:border-rose-500/30 rounded-lg text-[10px] font-bold shadow-sm" title="Batalkan Pengajuan">
-                                                    Batalkan
+                                                    Batalkan Pengajuan
                                                 </button>
                                             </form>
                                             @endif
@@ -397,7 +451,9 @@
                                                 <td class="py-2 border-r border-slate-100 dark:border-slate-800">N</td>
                                                 <td id="sim_semula_n" class="border-r border-slate-100 dark:border-slate-800">{{ $valN }}</td>
                                                 <td id="sim_menjadi_n" class="border-r border-slate-100 dark:border-slate-800 text-blue-600 dark:text-blue-400">{{ $valN }}</td>
-                                                <td class="font-medium text-slate-500 dark:text-slate-400">{{ $tahunBerjalan }}</td>
+                                                <td class="font-bold text-[11px] text-slate-600 dark:text-slate-300 flex items-center justify-center gap-1.5 h-full py-3.5">
+                                                    {{ $tahunBerjalan }} (Berjalan) <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                                                </td>
                                             </tr>
                                         </tbody>
                                     </table>

@@ -110,10 +110,10 @@
                 <span class="text-slate-300 dark:text-slate-600">•</span>
                 <span id="realtime-clock">Memuat waktu...</span>
                 <span class="text-slate-300 dark:text-slate-600">•</span>
-                <div class="flex items-center text-emerald-600 dark:text-emerald-400 font-semibold group cursor-default">
+                <a href="{{ route('profil') }}" class="flex items-center text-emerald-600 dark:text-emerald-400 font-semibold group hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors">
                     <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></div>
                     Admin Kepegawaian
-                </div>
+                </a>
             </div>
             
             <div class="flex items-center space-x-3 relative">
@@ -137,9 +137,9 @@
                     </div>
                 </div>
 
-                <div class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-[10px] shadow-sm cursor-default" title="Admin">
+                <a href="{{ route('profil') }}" class="w-6 h-6 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center font-bold text-[10px] shadow-sm transition-transform hover:scale-105" title="Buka Profil Admin">
                     {{ substr(auth()->user()->name ?? 'A', 0, 1) }}
-                </div>
+                </a>
                 
                 <form action="{{ route('logout') }}" method="POST" class="m-0 p-0">
                     @csrf
@@ -456,7 +456,14 @@
                                 </thead>
                                 <tbody class="text-center font-bold text-xs text-slate-700 dark:text-slate-300 divide-y divide-slate-200 dark:divide-slate-800">
                                     @php
-                                        $lastCutiTahunan = $emp->leaveHistories()->where('tahun', $tahunBerjalan)->where('jenis_cuti', 'Cuti Tahunan')->orderBy('created_at', 'desc')->first();
+                                        // PENTING: Abaikan cuti yang statusnya 'Ditolak' dari perhitungan pengurangan tabel
+                                        $lastCutiTahunan = $emp->leaveHistories()
+                                            ->where('tahun', $tahunBerjalan)
+                                            ->where('jenis_cuti', 'Cuti Tahunan')
+                                            ->where('status_pengajuan', '!=', 'Ditolak') // <-- INI KUNCI PERBAIKANNYA
+                                            ->orderBy('created_at', 'desc')
+                                            ->first();
+                                            
                                         $durasiTerakhir = $lastCutiTahunan ? $lastCutiTahunan->durasi : 0;
 
                                         $semulaN2 = $valN2; $semulaN1 = $valN1; $semulaN = $valN; $tempDurasi = $durasiTerakhir;
@@ -530,30 +537,48 @@
                                         <td class="px-3 py-2.5 font-bold text-blue-600 dark:text-blue-400 border-r border-slate-100 dark:border-slate-800/60">{{ $riwayat->durasi }} Hari</td>
                                         
                                         <td class="px-2 py-2.5 align-middle">
-                                            <div class="flex flex-col items-center gap-1.5 w-full max-w-[100px] mx-auto">
+                                            <div class="flex flex-col items-center gap-1.5 w-full max-w-[120px] mx-auto">
+                                                
                                                 @if($riwayat->status_pengajuan == 'Disetujui')
-                                                    <span class="bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 px-2 py-1.5 rounded-md text-[10px] font-bold w-full text-center">Disetujui ✅</span>
+                                                    <!-- Jika di ACC (Tampilkan tombol Batal ACC / Reset) -->
+                                                    <div class="flex items-center gap-1 w-full">
+                                                        <span class="bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 px-2 py-1.5 rounded-md text-[10px] font-bold w-full text-center">Disetujui ✅</span>
+                                                        <form action="{{ route('cuti.konfirmasi', $riwayat->id) }}" method="POST" class="m-0 p-0" title="Batalkan ACC (Reset ke Menunggu)">
+                                                            @csrf <input type="hidden" name="status" value="Menunggu">
+                                                            <button type="submit" class="bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-amber-500 px-2 py-1.5 rounded-md border border-slate-200 dark:border-slate-700 transition-colors font-bold text-[10px]">↺</button>
+                                                        </form>
+                                                    </div>
+
                                                 @elseif($riwayat->status_pengajuan == 'Ditolak')
-                                                    <span class="bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20 px-2 py-1.5 rounded-md text-[10px] font-bold w-full text-center">Ditolak ❌</span>
+                                                    <!-- Jika Ditolak (Tampilkan tombol Batal Tolak / Reset + Keterangan) -->
+                                                    <div class="flex items-center gap-1 w-full">
+                                                        <span class="bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20 px-2 py-1.5 rounded-md text-[10px] font-bold w-full text-center">Ditolak ❌</span>
+                                                        <form action="{{ route('cuti.konfirmasi', $riwayat->id) }}" method="POST" class="m-0 p-0" title="Batalkan Penolakan (Reset ke Menunggu)">
+                                                            @csrf <input type="hidden" name="status" value="Menunggu">
+                                                            <button type="submit" class="bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-amber-500 px-2 py-1.5 rounded-md border border-slate-200 dark:border-slate-700 transition-colors font-bold text-[10px]">↺</button>
+                                                        </form>
+                                                    </div>
+                                                    <div class="text-[9px] text-rose-500 dark:text-rose-400 font-medium leading-tight mt-1 text-center w-full bg-rose-50/50 dark:bg-rose-900/10 p-1 rounded border border-rose-100 dark:border-rose-800/30">
+                                                        Alasan: {{ $riwayat->alasan_tolak ?? '-' }}
+                                                    </div>
+
                                                 @else
+                                                    <!-- Jika Menunggu (Tampilkan ACC dan TOLAK) -->
                                                     <div class="flex flex-col xl:flex-row gap-1 w-full justify-center">
                                                         <form action="{{ route('cuti.konfirmasi', $riwayat->id) }}" method="POST" class="m-0 p-0 w-full">
-                                                            @csrf
-                                                            <input type="hidden" name="status" value="Disetujui">
+                                                            @csrf <input type="hidden" name="status" value="Disetujui">
                                                             <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white px-1.5 py-1.5 rounded-md text-[10px] font-bold transition-colors shadow-sm" title="Setujui Cuti">✓ ACC</button>
                                                         </form>
-                                                        <form action="{{ route('cuti.konfirmasi', $riwayat->id) }}" method="POST" class="m-0 p-0 w-full">
-                                                            @csrf
-                                                            <input type="hidden" name="status" value="Ditolak">
-                                                            <button type="submit" class="w-full bg-rose-500 hover:bg-rose-600 text-white px-1.5 py-1.5 rounded-md text-[10px] font-bold transition-colors shadow-sm" title="Tolak Cuti">✕ Tolak</button>
-                                                        </form>
+                                                        <button type="button" onclick="konfirmasiTolakCuti('{{ route('cuti.konfirmasi', $riwayat->id) }}')" class="w-full bg-rose-500 hover:bg-rose-600 text-white px-1.5 py-1.5 rounded-md text-[10px] font-bold transition-colors shadow-sm" title="Tolak Cuti">✕ Tolak</button>
                                                     </div>
                                                 @endif
 
-                                                <form action="{{ route('cuti.destroy', $riwayat->id) }}" method="POST" class="m-0 p-0 w-full">
+                                                <!-- Tombol Hapus Permanen selalu ada -->
+                                                <form action="{{ route('cuti.destroy', $riwayat->id) }}" method="POST" class="m-0 p-0 w-full mt-0.5">
                                                     @csrf @method('DELETE')
-                                                    <button type="button" onclick="konfirmasiBatalkanCuti(this, '{{ $riwayat->jenis_cuti }}')" class="w-full text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 bg-slate-50 hover:bg-rose-50 dark:bg-slate-800/50 dark:hover:bg-rose-900/20 py-1.5 transition-colors border border-slate-200 dark:border-slate-700 hover:border-rose-200 dark:hover:border-rose-500/30 rounded-md flex justify-center items-center" title="Hapus Permanen">
-                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                    <button type="button" onclick="konfirmasiBatalkanCuti(this, '{{ $riwayat->jenis_cuti }}')" class="w-full text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 bg-slate-50 hover:bg-rose-50 dark:bg-slate-800/50 dark:hover:bg-rose-900/20 py-1 transition-colors border border-slate-200 dark:border-slate-700 hover:border-rose-200 dark:hover:border-rose-500/30 rounded-md flex justify-center items-center gap-1 text-[10px] font-bold">
+                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                        Hapus
                                                     </button>
                                                 </form>
                                             </div>
@@ -1215,6 +1240,8 @@
             });
         }
 
+
+
         // SWEETALERT BATALKAN CUTI (SOFT MAC UI)
         function konfirmasiBatalkanCuti(btn, jenisCuti) {
             let textTambahan = jenisCuti === 'Cuti Tahunan' ? `
@@ -1259,6 +1286,42 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     btn.closest('form').submit();
+                }
+            });
+        }
+
+        function konfirmasiTolakCuti(url) {
+            Swal.fire({
+                title: 'Tolak Pengajuan Cuti?',
+                html: '<p class="text-xs text-slate-500 mb-2">Tuliskan alasan penolakan agar pegawai dapat memperbaikinya.</p>',
+                input: 'textarea',
+                inputPlaceholder: 'Contoh: Berkas kurang lengkap / Tanggal bentrok...',
+                showCancelButton: true,
+                confirmButtonText: 'Tolak Sekarang',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#e11d48',
+                customClass: {
+                    popup: 'bg-white dark:bg-[#111827] rounded-[1.5rem] shadow-2xl border border-slate-100 dark:border-slate-800',
+                    input: 'bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm p-3 text-slate-800 dark:text-slate-200 focus:ring-rose-500 focus:border-rose-500',
+                    confirmButton: 'px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[13px] font-bold',
+                    cancelButton: 'px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300 rounded-xl text-[13px] font-bold'
+                },
+                preConfirm: (alasan) => {
+                    if (!alasan) { Swal.showValidationMessage('Alasan penolakan tidak boleh kosong!'); }
+                    return alasan;
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    let form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = url;
+                    form.innerHTML = `
+                        <input type="hidden" name="_token" value="${document.querySelector('meta[name="csrf-token"]').getAttribute('content')}">
+                        <input type="hidden" name="status" value="Ditolak">
+                        <input type="hidden" name="alasan_tolak" value="${result.value}">
+                    `;
+                    document.body.appendChild(form);
+                    form.submit();
                 }
             });
         }

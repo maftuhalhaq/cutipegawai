@@ -81,7 +81,6 @@
                     <div class="flex items-center justify-center w-full space-x-4 z-10 animate-fade-in-up opacity-0">
                         <img src="{{ asset('images/logo-bnn.png') }}" alt="Logo BNN" class="w-16 h-16 object-contain blend-screen drop-shadow-xl">
                         <div class="leading-tight text-left">
-                            <div class="text-2xl font-bold tracking-wider text-blue-100/90 dark:text-slate-200">OFFICIAL PORTAL</div>
                             <div class="text-2xl font-bold tracking-wider dark:text-white">BNN Kab. Malang</div>
                         </div>
                     </div>
